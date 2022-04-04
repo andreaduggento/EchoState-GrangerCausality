@@ -1,6 +1,7 @@
-function [ W ] = ridgeregression( X, Y, esn)
+function [ iesn ] = ridgeregression( X, Y, esn)
 
-W = Y'*X'*inv(X*X'+esn.lambda*eye(size(X,1))); 
+	iesn = esn ;
+	iesn.Wout = Y'*X'/(X*X'+esn.lambda*eye(size(X,1))); 
 
 end
 

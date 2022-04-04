@@ -1,8 +1,6 @@
-This class was modified from 
+%%%%%	This is a modified implementation initially taken from https://github.com/stefanonardo/echo-state-network/
 
-
-
-classdef iESN < handle
+classdef EchoStateGC_iESN < handle
     properties
         Nr 
         Ntot 
@@ -21,9 +19,11 @@ classdef iESN < handle
         Wout
         internalState
 	nonlinearfunction    
+	wrexternallydefined    
+	winexternallydefined    
     end
     methods
-        function iesn = iESN(Nr, seqDim, varargin)
+        function iesn = EchoStateGC_iESN(Nr, seqDim, varargin)
         	% Constructor
         	%
         	% args:
@@ -43,12 +43,14 @@ classdef iESN < handle
         	iesn.alpha = 1;
         	iesn.rho = 0.9;
         	iesn.inputScaling = 1;
-        	iesn.biasScaling = 1;
+        	iesn.biasScaling = 0.;
         	iesn.lambda = 1;
         	iesn.connectivity = 1;
         	iesn.readout_training = 'ridgeregression';
         	iesn.orthonormalWeights = 1;
         	iesn.nonlinearfunction = 'tanh';
+        	iesn.wrexternallydefined = 0;
+        	iesn.winexternallydefined = 0;
 
         	numvarargs = length(varargin);
         	for i = 1:2:numvarargs
@@ -62,9 +64,10 @@ classdef iESN < handle
         	        case 'readoutTraining', iesn.readout_training = varargin{i+1};
         	        case 'orthonormalWeights', iesn.orthonormalWeights = varargin{i+1};
         	        case 'nonlinearfunction', iesn.nonlinearfunction = varargin{i+1};
-        	        case 'Wr', iesn.Wr = varargin{i+1};
+        	        case 'Wr', iesn.Wr = varargin{i+1} ; iesn.wrexternallydefined=1 ;
+        	        case 'Win', iesn.Win = varargin{i+1} ; iesn.winexternallydefined=1 ;
         	        
-        	        otherwise, error('the option does not exist');
+        	        otherwise, error(join(['the option "' varargin{i}  '"  does not exist'],''));
         	    end
         	end
         
@@ -73,22 +76,27 @@ classdef iESN < handle
 		end
 
          	iesn.seqDim = seqDim;
-        	iesn.Win = [] ; for i=1:seqDim ; wtemp = iesn.inputScaling*(rand(Nr(i),1) * 2 - 1); iesn.Win=blkdiag(iesn.Win,wtemp); end;
+		if ~(iesn.winexternallydefined) 
+        		iesn.Win = [] ; for i=1:seqDim ; wtemp = iesn.inputScaling*(rand(Nr(i),1) * 2 - 1); iesn.Win=blkdiag(iesn.Win,wtemp); end;
+		end
 		iesn.Wb = iesn.biasScaling * (rand(iesn.Ntot, 1) * 2 - 1);
 
-		if(iesn.orthonormalWeights)
-			Wr=[];
-        		for i=1:seqDim ; 
-				wwtemp = rand(Nr(i),Nr(i)); wwtemp = iesn.rho * orth(wwtemp);
-				Wr = blkdiag(Wr,wwtemp);
+		if ~(iesn.wrexternallydefined) 
+			if(iesn.orthonormalWeights)
+				Wr=[];
+	        		for i=1:seqDim ; 
+					wwtemp = rand(Nr(i),Nr(i)); wwtemp = iesn.rho * orth(wwtemp);
+					Wr = blkdiag(Wr,wwtemp);
+				end
+			else
+	        		Wr = full(sprand(iesn.Ntot-size(iesn.Wr,1),iesn.Ntot-size(iesn.Wr,1), iesn.connectivity));
+			        Wr(Wr ~= 0) = Wr(Wr ~= 0) * 2 - 1;
+	        		Wr = Wr * (iesn.rho / max(abs(eig(Wr))));
+				Wr = blkdiag(zeros(size(iesn.Wr,1),size(iesn.Wr,1)),Wr);
 			end
-		else
-        		Wr = full(sprand(iesn.Ntot-size(iesn.Wr,1),iesn.Ntot-size(iesn.Wr,1), iesn.connectivity));
-		        Wr(Wr ~= 0) = Wr(Wr ~= 0) * 2 - 1;
-        		Wr = Wr * (iesn.rho / max(abs(eig(Wr))));
-			Wr = blkdiag(zeros(size(iesn.Wr,1),size(iesn.Wr,1)),Wr);
+			iesn.Wr = blkdiag(iesn.Wr , Wr(1+size(iesn.Wr,1):end,1+size(iesn.Wr,1):end));
 		end
-		iesn.Wr = blkdiag(iesn.Wr , Wr(1+size(iesn.Wr,1):end,1+size(iesn.Wr,1):end));
+		% iesn.Wr
         end
         function train(iesn, trX, trY, washout,varargin)
         % Trains the network on input X given target Y.
@@ -134,7 +142,7 @@ classdef iESN < handle
 	end
 
         iesn.internalState = X(1+iesn.seqDim+1:end,:);
-        iesn.Wout = feval(iesn.readout_training, X, trY, iesn);
+        iesn = feval(iesn.readout_training, X, trY, iesn);
 
         end
         function y = predict(iesn, data, washout)
