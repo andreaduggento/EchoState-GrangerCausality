@@ -1,6 +1,3 @@
-%% Add path of your local installation
-addpath '~/EchoState-GrangerCausality'
-
 %% Load example data
 load 'example_data_Nnet_169_W_020_N_10k__tk5.mat'; 
 data=Expression1;
@@ -29,10 +26,7 @@ fun='tanh';
 %% Build Wr matrix, if not already available		
 Wr=EchoStateGC_reference_Wr_build(Nr,nodes);
 
-
 %% Calculate Granger Causality	
-GC = EchoStateGC_GC(data, Nr,'Wr',Wr,'nonlinearfunction',fun);
+GC = EchoStateGC_GCx(data, Nr,'Wr',Wr,'nonlinearfunction',fun);
 
 GC
-
-

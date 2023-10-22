@@ -1,7 +1,7 @@
 function  [ gc lambda ] = EchoStateGC_GCx(dataX, Nr, varargin)
 
 numSes = size(dataX,1);
-[len,nodes]= size(dataX{1});
+[len,nodes]= size(dataX);
 
 % len
 
@@ -100,10 +100,10 @@ for j = 1 : nodes
 			gc(j,i)=0.;
 			errors2(i,j)= 0.;   % pleonastico
 		elseif (i<j) 
-			errors2(i,j)= immse(output2(1:end,i),trYY(1:end,i));
+			errors2(i,j)= mean_squared_error(output2(1:end,i),trYY(1:end,i));
 			gc(j,i) = log(errors2(i,j)/errors(i));
 		else	
-			errors2(i,j)= immse(output2(1:end,i-1),trYY(1:end,i-1));
+			errors2(i,j)= mean_squared_error(output2(1:end,i-1),trYY(1:end,i-1));
 			gc(j,i) = log(errors2(i,j)/errors(i));
 		end
 	end
