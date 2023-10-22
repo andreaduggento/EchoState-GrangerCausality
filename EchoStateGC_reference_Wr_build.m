@@ -12,7 +12,7 @@ function [Wr] = EchoStateGC_reference_Wr_build(Nr,nodes,varargin)
         
 	rhoCent=round(rho*10000);
 
-	folder = [ fileparts(mfilename('fullpath')) sprintf('/reference_Wr/rho_%04d',rhoCent) ]	
+	folder = [ fileparts(mfilename('fullpath')) sprintf('/reference_Wr/rho_%04d',rhoCent) ];
 
 	if ~exist(folder, 'dir')
 		mkdir(folder);
